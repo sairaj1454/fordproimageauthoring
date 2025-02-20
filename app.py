@@ -128,4 +128,5 @@ def convert_to_jpg(png_path, wers_code, download_folder):
     os.remove(png_path)  # Remove the original PNG file
 
 if __name__ == '__main__':
-    app.run(debug=True)
+    port = int(os.environ.get('PORT', 5000))
+    app.run(host='0.0.0.0', port=port)
