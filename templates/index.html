@@ -1,0 +1,162 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Upload Excel File</title>
+    <link href="https://stackpath.bootstrapcdn.com/bootstrap/4.3.1/css/bootstrap.min.css" rel="stylesheet">
+    <style>
+        .progress-circle {
+            width: 100px;
+            height: 100px;
+            position: relative;
+            margin: auto;
+        }
+
+        .progress-circle:after {
+            content: '';
+            width: 90px;
+            height: 90px;
+            background: #f5f5f5;
+            border-radius: 50%;
+            position: absolute;
+            top: 5px;
+            left: 5px;
+            z-index: 1;
+        }
+
+        .progress-circle span {
+            width: 100px;
+            height: 100px;
+            border-radius: 50%;
+            background: conic-gradient(#007bff calc(var(--progress) * 1%), #f5f5f5 0%);
+            position: absolute;
+            top: 0;
+            left: 0;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            font-size: 18px;
+            font-weight: bold;
+            z-index: 2;
+        }
+
+        .progress-wrapper {
+            display: none;
+            margin-top: 20px;
+            text-align: center;
+        }
+
+        .navbar-brand img {
+            max-height: 40px;
+            margin-right: 10px;
+        }
+
+        .navbar-brand {
+            display: flex;
+            align-items: center;
+        }
+    </style>
+</head>
+<body>
+    <nav class="navbar navbar-expand-lg navbar-light bg-light">
+        <a class="navbar-brand" href="#">
+            <img src="https://upload.wikimedia.org/wikipedia/commons/thumb/3/3e/Ford_logo_flat.svg/1200px-Ford_logo_flat.svg.png" alt="Ford Logo">
+            Image Downloader
+        </a>
+        <div class="collapse navbar-collapse">
+            <ul class="navbar-nav mr-auto">
+                <li class="nav-item active">
+                    <a class="nav-link" href="/">Home</a>
+                </li>
+            </ul>
+        </div>
+    </nav>
+    <div class="container mt-5">
+        <h1>Upload Excel File</h1>
+
+        <!-- Circular Progress Bar -->
+        <div class="progress-wrapper">
+            <div class="progress-circle">
+                <span id="progress-text">0%</span>
+            </div>
+        </div>
+
+        <!-- Success Message -->
+        <div id="success-message" class="alert alert-success" role="alert" style="display: none;"></div>
+
+        <form action="/upload" method="post" enctype="multipart/form-data" id="upload-form">
+            <div class="form-group">
+                <label for="file">Choose Excel file:</label>
+                <input type="file" class="form-control-file" name="file" id="file" required>
+            </div>
+            <div class="form-group">
+                <label for="wers_codes">Enter WERS Codes (comma or newline-separated):</label>
+                <textarea class="form-control" name="wers_codes" id="wers_codes" rows="5"></textarea>
+            </div>
+            <div class="form-group">
+                <label for="wers_column">WERS Codes Column Name:</label>
+                <input type="text" class="form-control" name="wers_column" id="wers_column" placeholder="e.g., Column1.parts.id" required>
+            </div>
+            <div class="form-group">
+                <label for="image_column">Image Link Column Name:</label>
+                <input type="text" class="form-control" name="image_column" id="image_column" placeholder="e.g., Column1.parts.imageHero" required>
+            </div>
+            <button type="submit" class="btn btn-primary">Upload</button>
+        </form>
+    </div>
+
+    <script src="https://code.jquery.com/jquery-3.3.1.slim.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/popper.js/1.14.7/umd/popper.min.js"></script>
+    <script src="https://stackpath.bootstrapcdn.com/bootstrap/4.3.1/js/bootstrap.min.js"></script>
+    <script>
+        const form = document.getElementById('upload-form');
+        form.addEventListener('submit', function(event) {
+            const progressWrapper = document.querySelector('.progress-wrapper');
+            const progressText = document.getElementById('progress-text');
+            const successMessage = document.getElementById('success-message');
+
+            progressWrapper.style.display = 'block';
+            progressText.textContent = '0%';
+            document.querySelector('.progress-circle span').style.setProperty('--progress', 0);
+            successMessage.style.display = 'none'; // Hide success message initially
+
+            const xhr = new XMLHttpRequest();
+            xhr.open('POST', form.action, true);
+            xhr.onload = function() {
+                if (xhr.status === 200) {
+                    // Start fetching progress
+                    fetchProgress();
+                }
+            };
+            xhr.send(new FormData(form));
+            event.preventDefault(); // Prevent default form submission
+        });
+
+        function fetchProgress() {
+            const startTime = Date.now(); // Start time tracking
+            const interval = setInterval(() => {
+                fetch('/progress')
+                    .then(response => response.json())
+                    .then(data => {
+                        const progressText = document.getElementById('progress-text');
+                        const successMessage = document.getElementById('success-message');
+                        const progressWrapper = document.querySelector('.progress-wrapper');
+                        
+                        const progress = Math.min(Math.round(data.progress), 100); // Cap progress at 100%
+                        progressText.textContent = `${progress}%`;
+                        document.querySelector('.progress-circle span').style.setProperty('--progress', progress);
+
+                        // Check if the process is complete
+                        if (progress >= 100) {
+                            clearInterval(interval);
+                            const elapsedTime = ((Date.now() - startTime) / 1000).toFixed(2); // Calculate elapsed time in seconds
+                            successMessage.textContent = `Successfully completed! Time taken: ${elapsedTime} seconds.`;
+                            successMessage.style.display = 'block'; // Show success message
+                            progressWrapper.style.display = 'none'; // Hide progress bar
+                        }
+                    });
+            }, 1000); // Check progress every second
+        }
+    </script>
+</body>
+</html>
