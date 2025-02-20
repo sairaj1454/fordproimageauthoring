@@ -85,6 +85,7 @@ def progress():
 
 def download_images(filepath, wers_column, image_column, wers_codes_list, download_folder):
     global progress_data
+    logging.info("Starting download_images function.")
     df = pd.read_excel(filepath)
     df = df.dropna(subset=[wers_column, image_column])  # Drop rows with NaN values in the specified columns
     df[wers_column] = df[wers_column].astype(str)
@@ -108,19 +109,19 @@ def download_images(filepath, wers_column, image_column, wers_codes_list, downlo
         processed.add((wers_code, image_link))
 
         full_url = base_url + image_link
+        logging.info(f"Attempting to download image from: {full_url}")
         try:
             response = requests.get(full_url, verify=False)  # Disable SSL verification
             if response.status_code == 200:
                 image_path = os.path.join(download_folder, f"{wers_code}.png")
                 with open(image_path, 'wb') as f:
                     f.write(response.content)
+                logging.info(f"Downloaded image and saved to: {image_path}")
                 convert_to_jpg(image_path, wers_code, download_folder)
             else:
-                logging.error(f"Failed to download image: {full_url}, Status code: {response.status_code}")
-        except requests.exceptions.SSLError as e:
-            logging.error(f"SSL Error for URL: {full_url}, Error: {e}")
+                logging.error(f"Failed to download image, status code: {response.status_code}")
         except Exception as e:
-            logging.error(f"Error for URL: {full_url}, Error: {e}")
+            logging.error(f"Error downloading image: {e}")
 
         # Update progress
         progress_data['progress'] = (index + 1) / total_images * 100
