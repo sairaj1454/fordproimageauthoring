@@ -9,8 +9,18 @@ from threading import Thread
 import logging
 
 app = Flask(__name__)
-app.config['UPLOAD_FOLDER'] = 'uploads/'
 
+# Configure upload folder based on environment
+if os.environ.get('RENDER'):
+    # On Render, use the persistent storage directory
+    UPLOAD_FOLDER = '/opt/render/project/src/uploads/'
+else:
+    # Locally, use the uploads directory in the current folder
+    UPLOAD_FOLDER = 'uploads/'
+
+app.config['UPLOAD_FOLDER'] = UPLOAD_FOLDER
+
+# Ensure upload directory exists
 if not os.path.exists(app.config['UPLOAD_FOLDER']):
     os.makedirs(app.config['UPLOAD_FOLDER'])
 
@@ -24,8 +34,13 @@ progress_data = {
 logging.basicConfig(level=logging.DEBUG)
 
 def get_download_folder():
-    """Get the user's Downloads folder."""
-    return str(Path.home() / "Downloads")
+    """Get the download folder path based on environment."""
+    if os.environ.get('RENDER'):
+        # On Render, use a subdirectory in the persistent storage
+        return '/opt/render/project/src/downloads'
+    else:
+        # Locally, use the user's Downloads folder
+        return str(Path.home() / "Downloads")
 
 @app.route('/')
 def index():
